@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Menu</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/auth.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">CateringHub</div>
+            <ul class="nav-menu">
+                <li><a href="user-calendar.html" class="nav-link active">Calendar</a></li>
+                <li><a href="user-profile.html" class="nav-link">Profile</a></li>
+                <li><a href="#" class="nav-link" onclick="logout(); return false;">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="user-container">
+        <div class="calendar-section">
+            <h1>This Week's Menu</h1>
+            
+            <div class="calendar-container">
+                <div class="calendar-week" id="userCalendarWeek">
+                    <!-- User calendar will be generated here -->
+                </div>
+            </div>
+
+            <div class="selected-foods">
+                <h2>Selected Foods</h2>
+                <div id="selectedFoods" class="foods-list">
+                    <!-- Selected foods will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 CateringHub. All rights reserved.</p>
+    </footer>
+
+    <script src="js/user.js"></script>
+</body>
+</html>
