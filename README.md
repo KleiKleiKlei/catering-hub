@@ -461,20 +461,6 @@ Test User Account:
   Password: user123
 ```
 
----
-
-## Future Enhancements
-
-- [ ] Order payment integration
-- [ ] Email notifications
-- [ ] Ratings & reviews
-- [ ] SMS alerts
-- [ ] Mobile app
-- [ ] Inventory management
-- [ ] Delivery tracking
-- [ ] Advanced reporting
-
----
 
 ## Support & Contact
 
