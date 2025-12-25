@@ -56,20 +56,20 @@ CateringHub is a web-based catering management platform with two user roles:
 ```
 Option A - Using Terminal:
   1. Open PowerShell
-  2. Run: git clone <repo-url> e:\cater
+  2. Run: git clone <repo-url> x:\cater
   
 Option B - Manual Copy:
-  1. Copy project folder to e:\cater
+  1. Copy project folder to x:\cater
   2. Or any location on your drive
 ```
 
 ### Step 3: Deploy to XAMPP
 ```powershell
 # Copy all project files to XAMPP htdocs
-xcopy e:\cater\* C:\xampp\htdocs\cater\ /E /Y
+xcopy x:\cater\* C:\xampp\htdocs\cater\ /E /Y
 
 # Or use PowerShell
-Copy-Item -Path "e:\cater\*" -Destination "C:\xampp\htdocs\cater\" -Recurse -Force
+Copy-Item -Path "x:\cater\*" -Destination "C:\xampp\htdocs\cater\" -Recurse -Force
 ```
 
 ### Step 4: Start Services
