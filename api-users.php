@@ -1,10 +1,19 @@
 <?php
+
+ob_start();
+ini_set('display_errors', '0');
+error_reporting(E_ALL);
+
+
+ini_set('log_errors', '1');
+ini_set('error_log', __DIR__ . '/error.log');
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
-// Handle preflight requests
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
@@ -68,7 +77,18 @@ function handleRegister($conn) {
 
     $sql = "INSERT INTO users (name, email, phone, password) VALUES (?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssss", $name, $email, $phone, $password);
+    
+    if (!$stmt) {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => 'Database prepare error: ' . $conn->error]);
+        return;
+    }
+    
+    if (!$stmt->bind_param("ssss", $name, $email, $phone, $password)) {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => 'Bind parameter error: ' . $stmt->error]);
+        return;
+    }
 
     if ($stmt->execute()) {
         http_response_code(200);
@@ -82,62 +102,96 @@ function handleRegister($conn) {
             echo json_encode(['status' => 'error', 'message' => 'Registration failed: ' . $conn->error]);
         }
     }
+    
+    $stmt->close();
 }
 
 function handleLogin($conn) {
-    $data = json_decode(file_get_contents("php://input"), true);
-    
-    if (!isset($data['email']) || !isset($data['password']) || !isset($data['userType'])) {
+    $input = file_get_contents("php://input");
+    $data = json_decode($input, true);
+
+    if (
+        !$data ||
+        !isset($data['email']) ||
+        !isset($data['password']) ||
+        !isset($data['userType'])
+    ) {
         http_response_code(400);
-        echo json_encode(['status' => 'error', 'message' => 'Missing required fields']);
+        echo json_encode(['status' => 'error', 'message' => 'Missing fields']);
         return;
     }
 
-    $email = htmlspecialchars($data['email']);
-    $userType = htmlspecialchars($data['userType']);
+    $identifier = $data['email'];
+    $password   = $data['password'];
+    $userType   = $data['userType'];
 
-    if ($userType === 'admin') {
-        $sql = "SELECT admin_id, name, email, password FROM admin WHERE email = ?";
-    } else {
-        $sql = "SELECT user_id, name, email, password, is_active FROM users WHERE email = ?";
+    /* ================= USER LOGIN ================= */
+    if ($userType === 'user') {
+
+        $sql = "
+            SELECT user_id, name, email, password, is_active
+            FROM users
+            WHERE email = ? OR name = ?
+        ";
+
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ss", $identifier, $identifier);
     }
 
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $email);
+    /* ================= ADMIN LOGIN ================= */
+    else if ($userType === 'admin') {
+
+        $sql = "
+            SELECT admin_id, name, email, password
+            FROM admins
+            WHERE email = ? OR name = ?
+        ";
+
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ss", $identifier, $identifier);
+    }
+
+    else {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Invalid user type']);
+        return;
+    }
+
     $stmt->execute();
     $result = $stmt->get_result();
 
-    if ($result->num_rows > 0) {
-        $user = $result->fetch_assoc();
-        
-        if ($userType === 'user' && !$user['is_active']) {
-            http_response_code(403);
-            echo json_encode(['status' => 'error', 'message' => 'Your account has been disabled']);
-            return;
-        }
-
-        if (password_verify($data['password'], $user['password'])) {
-            http_response_code(200);
-            echo json_encode([
-                'status' => 'success',
-                'message' => 'Login successful',
-                'user' => [
-                    'id' => $userType === 'admin' ? $user['admin_id'] : $user['user_id'],
-                    'name' => $user['name'],
-                    'email' => $user['email'],
-                    'userType' => $userType
-                ]
-            ]);
-        } else {
-            http_response_code(401);
-            echo json_encode(['status' => 'error', 'message' => 'Invalid credentials']);
-        }
-    } else {
+    if ($result->num_rows === 0) {
         http_response_code(401);
         echo json_encode(['status' => 'error', 'message' => 'User not found']);
+        return;
     }
-}
 
+    $user = $result->fetch_assoc();
+
+    if ($userType === 'user' && !$user['is_active']) {
+        http_response_code(403);
+        echo json_encode(['status' => 'error', 'message' => 'Account disabled']);
+        return;
+    }
+
+    if (!password_verify($password, $user['password'])) {
+        http_response_code(401);
+        echo json_encode(['status' => 'error', 'message' => 'Invalid credentials']);
+        return;
+    }
+
+    http_response_code(200);
+    echo json_encode([
+        'status' => 'success',
+        'message' => 'Login successful',
+        'user' => [
+            'id' => $userType === 'admin' ? $user['admin_id'] : $user['user_id'],
+            'name' => $user['name'],
+            'email' => $user['email'],
+            'userType' => $userType
+        ]
+    ]);
+}
 function getUsers($conn) {
     $sql = "SELECT user_id, name, email, phone, is_active FROM users ORDER BY created_at DESC";
     $result = $conn->query($sql);
